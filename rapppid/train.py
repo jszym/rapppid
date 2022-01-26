@@ -570,6 +570,7 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     pl_seed.seed_everything(seed, workers=True)
 
     threads = max(1, _getThreads()-2)
+    #threads = 4
     print(f'Using {threads} workers')
 
     data_module = RapppidDataModule(batch_size, train_path, val_path, test_path,
@@ -632,9 +633,9 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     try:
         dict_logger = DictLogger()
         tb_logger = TensorBoardLogger(f'{log_path}/tb_logs', name='lstm_weightdropout', version=model_name)
-
+        #csv_logger = CSVLogger("logs/tb_logs", name='lstm_weightdropout', version=model_name)
         checkpoint_callback = ModelCheckpoint(f"{log_path}/chkpts/", monitor='val_loss', filename=model_name)
-
+        #checkpoint_callback = ModelCheckpoint(f"{log_path}/chkpts/", monitor='val_auroc', filename=model_name)
         trainer = pl.Trainer(gpus=1, stochastic_weight_avg=swa, max_epochs=num_epochs, logger=[tb_logger, dict_logger], precision=16, callbacks=[checkpoint_callback])
         trainer.fit(model, data_module)
     except KeyboardInterrupt:
@@ -728,4 +729,3 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
 
 if __name__ == '__main__':
     fire.Fire(main)
-

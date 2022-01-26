@@ -4,41 +4,27 @@
 
 ---
 
-## Environment
+RAPPPID is a deep learning model for predicting protein interactions. You can 
+read more about it in [our preprint](https://doi.org/10.1101/2021.08.13.456309).
+
+## How to Use RAPPPID
+
+### Training New Models
+It's possible to train a RAPPPID model using the `train.py` utility. For precise instructions, see [docs/train.md](docs/train.md).
+
+### Data
+See [docs/data.md](docs/data.md) for information about downloading data from the manuscript, or preparing your own datasets.
+
+### Infering
+See [docs/infer.md](docs/infer.md) for advice on how to use RAPPPID for infering protein interaction probabilities.
+
+## Environment/Requirments
 
 The conda environment file (`environment.yml`) is available in the root of this
-repository.
+repository. This lists all the python libraries and the versions used for 
+running RAPPPID.
 
-
-## Usage
-
-First begin by generating a SentencePiece vocabulary using `rapppid/train_seg.py`.
-Set the `TRAIN_PATH`, `SEQ_PATH`, and `VOCAB_SIZE` constants to the desired 
-values.
-
-To train, validate, and test the model, run the `cli.py` python file in the 
-`rapppid` folder. `cli.py` takes the following positional arguments:
-
-* `batch_size: int` The training mini-batch size
-* `train_path: Path` The path to the training files. RAPPPID training files can be found in the `data/rapppid` folder
-* `val_path: Path` The path to the validation files. RAPPPID training files can be found in the `data/rapppid` folder
-* `test_path: Path` The path to the testing files. RAPPPID training files can be found in the `data/rapppid` folder
-* `seqs_path: Path` The path to the file containing protein sequences. RAPPPID protein sequences can be found in the `data/rapppid` folder
-* `trunc_len: int` Sequences longer than the `trunc_len` will be truncated to this length.
-* `embedding_size: int` The size of the token embeddings to use.
-* `num_epochs: int` The maximum number of epochs to run. Testing will be run on the epoch with the lowest validation loss.
-* `lstm_dropout_rate: float` The rate at which connections are dropped in the LSTM layers (aka DropConnect)
-* `classhead_dropout_rate: float` The rate at which activates are dropped at the fully-connected classifier (aka Dropout)
-* `rnn_num_layers: int` Number of LSTM layers to use
-* `class_head_name: str` The kind of classifier head to use. Use `concat` to replicate the RAPPPID manuscript, other values are poorly supported.
-* `variational_dropout: bool` Whether the DropConnect applied on the LSTM layers is done using variational dropout or not.
-* `lr_scaing: bool` Whether or not to scale learning rate with sequence length. Set to `False` to replicate RAPPPID manuscript, other values are poorly supported.
-* `log_path: Path` Where to store logging files (saved weights, tensorboard files, hyper-parameters)
-* `vocab_size: int` The size of the sentencepiece vocabulary. 
-* `embedding_droprate: float` The rate at which embeddings are dropped (aka Embedding Dropout)
-* `optimizer_type: str` The optimizer to use. Valid values are `ranger21` and `adam`. The former is best in our tests.
-* `swa: bool` Enable Stochastic Weight Averaging.
-* `seed: int` Seed to use for training.
+You'll need an NVIDIA GPU which is CUDA compatible. RAPPPID was tested on RTX 2080, V100, and A100 GPUs.
 
 
 ## License

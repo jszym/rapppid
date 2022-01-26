@@ -4,7 +4,9 @@ import sentencepiece as spm
 
 spm.set_random_generator_seed(5353456)
 
+# Path to the training pairs file
 TRAIN_PATH = 'train_pairs.pkl.gz'
+# Path to the seqs file
 SEQS_PATH = 'seqs.pkl.gz'
 VOCAB_SIZE = 250
 
