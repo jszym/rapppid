@@ -1,3 +1,4 @@
+from typing import List
 import gzip
 import pickle
 
@@ -19,24 +20,42 @@ class RapppidDataset(Dataset):
         model_file = f'./sentencepiece_models/smp{vocab_size}.model'
 
         self.spp = sp.SentencePieceProcessor(model_file=model_file)
-        self.aas = ['PAD', 'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', 'O', 'U']
 
+    @staticmethod
+    def static_encode(trunc_len: int, spp, seq: str, sp: bool = True, pad: bool = True):
+        aas = ['PAD', 'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', 'O', 'U']
+
+        toks = "".join([aas[r] for r in seq[:trunc_len]])
+        
+        if sp:
+                toks = np.array(spp.encode(toks, enable_sampling=True, alpha=0.1, nbest_size=-1))
+        if pad:
+             pad_len = trunc_len - len(toks)
+             toks = np.pad(toks, (0, pad_len), 'constant')
+
+        return toks
+
+    def encode(self, seq: str, sp: bool = True, pad: bool = True):
+
+        aas = ['PAD', 'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', 'O', 'U']
+
+        toks = "".join([aas[r] for r in seq[:self.trunc_len]])
+        
+        if sp:
+                toks = np.array(self.spp.encode(toks, enable_sampling=True, alpha=0.1, nbest_size=-1))
+        if pad:
+             pad_len = self.trunc_len - len(toks)
+             toks = np.pad(toks, (0, pad_len), 'constant')
+
+        return toks
 
     def __getitem__(self, idx):
 
         p1, p2, label = self.rows[idx]
 
-        p1_seq = "".join([self.aas[r] for r in self.seqs[p1][:self.trunc_len]])
-        p1_seq = np.array(self.spp.encode(p1_seq, enable_sampling=True, alpha=0.1, nbest_size=-1))
+        p1_seq = self.encode(self.seqs[p1], sp=True, pad=True)
 
-        p2_seq = "".join([self.aas[r] for r in self.seqs[p2][:self.trunc_len]])
-        p2_seq = np.array(self.spp.encode(p2_seq, enable_sampling=True, alpha=0.1, nbest_size=-1))
-
-        p1_pad_len = self.trunc_len - len(p1_seq)
-        p2_pad_len = self.trunc_len - len(p2_seq)
-
-        p1_seq = np.pad(p1_seq, (0, p1_pad_len), 'constant')
-        p2_seq = np.pad(p2_seq, (0, p2_pad_len), 'constant')
+        p2_seq = self.encode(self.seqs[p2], sp=True, pad=True)
 
         p1_seq = torch.tensor(p1_seq).long()
         p2_seq = torch.tensor(p2_seq).long()
