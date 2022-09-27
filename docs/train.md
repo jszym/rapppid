@@ -41,6 +41,7 @@ To train, validate, and test the model, run the `train.py` python file in the
 * `log_path: Path` Where to store logging files (saved weights, tensorboard files, hyper-parameters)
 * `vocab_size: int` The size of the sentencepiece vocabulary. 
 * `embedding_droprate: float` The rate at which embeddings are dropped (aka Embedding Dropout)
+* `transfer_path: str` If you wish to load weights that were pre-trained, include the checkpoint file from `/logs/chkpts/yourmodelname.chkpt`
 * `optimizer_type: str` The optimizer to use. Valid values are `ranger21` and `adam`. The former is best in our tests.
 * `swa: bool` Enable Stochastic Weight Averaging.
 * `seed: int` Seed to use for training.

@@ -3,6 +3,7 @@ import time
 import json
 import os
 import sys
+from typing import Optional
 
 import matplotlib.pyplot as plt
 
@@ -565,7 +566,8 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
                     classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str, 
                     class_head_name: str, variational_dropout: bool, lr_scaling: bool, model_file: str,
                     log_path: Path = 'logs', vocab_size: int = 250, embedding_droprate: float = 0.2,
-                    optimizer_type: str = 'ranger21', swa: bool = True, seed: int = 5353456):
+                    transfer_path: Optional[str] = None, optimizer_type: str = 'ranger21',
+                    swa: bool = True, seed: int = 5353456):
 
     pl_seed.seed_everything(seed, workers=True)
 
@@ -579,11 +581,14 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     data_module.setup()
     steps_per_epoch = len(data_module.dataset_train)//batch_size
 
-    model = LSTMAWD(vocab_size, embedding_size, steps_per_epoch, num_epochs, 
-                    lstm_dropout_rate, classhead_dropout_rate, rnn_num_layers, 
-                    classhead_num_layers, lr,  weight_decay, bi_reduce, 
-                    class_head_name, variational_dropout, lr_scaling, trunc_len, 
-                    embedding_droprate, optimizer_type)
+    if transfer_path:
+        model = LSTMAWD.load_from_checkpoint(transfer_path).eval()
+    else:
+        model = LSTMAWD(vocab_size, embedding_size, steps_per_epoch, num_epochs,
+                        lstm_dropout_rate, classhead_dropout_rate, rnn_num_layers,
+                        classhead_num_layers, lr, weight_decay, bi_reduce,
+                        class_head_name, variational_dropout, lr_scaling, trunc_len,
+                        embedding_droprate, optimizer_type)
 
     model_name = pwd.genphrase(length=2).replace(" ", "-")
     model_name = f"{time.time()}_{model_name}"
