@@ -563,8 +563,8 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
             trunc_len: int, embedding_size: int, num_epochs: int, 
                     lstm_dropout_rate: float, classhead_dropout_rate: float, rnn_num_layers: int, 
                     classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str, 
-                    class_head_name: str, variational_dropout: bool, lr_scaling: bool,
-                    log_path: Path = './logs', vocab_size: int = 250, embedding_droprate: float = 0.2,
+                    class_head_name: str, variational_dropout: bool, lr_scaling: bool, model_file: str,
+                    log_path: Path = 'logs', vocab_size: int = 250, embedding_droprate: float = 0.2,
                     optimizer_type: str = 'ranger21', swa: bool = True, seed: int = 5353456):
 
     pl_seed.seed_everything(seed, workers=True)
@@ -574,7 +574,7 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     print(f'Using {threads} workers')
 
     data_module = RapppidDataModule(batch_size, train_path, val_path, test_path,
-                                    seqs_path, trunc_len, threads, vocab_size, seed)
+                                    seqs_path, trunc_len, threads, vocab_size, model_file, seed)
 
     data_module.setup()
     steps_per_epoch = len(data_module.dataset_train)//batch_size

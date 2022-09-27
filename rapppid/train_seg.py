@@ -2,16 +2,11 @@ import gzip
 import pickle
 import sentencepiece as spm
 
-spm.set_random_generator_seed(5353456)
+spm.set_random_generator_seed(8675309)
 
-# Path to the training pairs file
-TRAIN_PATH = 'train_pairs.pkl.gz'
 # Path to the seqs file
-SEQS_PATH = 'seqs.pkl.gz'
+SEQS_PATH = '../data/9606/uniref_sequences_rapppid_subset[rapppid_proteins_[common_string_9606.protein.links.detailed.v11.5_uniref.csv]_8675309.json].pkl.gz'
 VOCAB_SIZE = 250
-
-with gzip.open(TRAIN_PATH) as f:
-    train_pairs = pickle.load(f)
 
 with gzip.open(SEQS_PATH) as f:
     seqs = pickle.load(f)
@@ -20,16 +15,11 @@ aas = ['PAD', 'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', '
 
 print('making seqs file')
 with open('seqs.txt', 'w') as f:
-    for prot_id_a, prot_id_b, y in train_pairs:
+    for pid in seqs:
 
-        seq = seqs[prot_id_a]
+        seq = seqs[pid]
         seq = "".join([aas[r] for r in seq])
         f.write(seq+'\n')
-
-        seq = seqs[prot_id_b]
-        seq = "".join([aas[r] for r in seq])
-        f.write(seq+'\n')
-
 
 print('sentencepiece training')
 

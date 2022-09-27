@@ -37,6 +37,7 @@ To train, validate, and test the model, run the `train.py` python file in the
 * `class_head_name: str` The kind of classifier head to use. Use `concat` to replicate the RAPPPID manuscript, other values are poorly supported.
 * `variational_dropout: bool` Whether the DropConnect applied on the LSTM layers is done using variational dropout or not.
 * `lr_scaing: bool` Whether or not to scale learning rate with sequence length. Set to `False` to replicate RAPPPID manuscript, other values are poorly supported.
+* `model_file: str` Path to the SentencePiece .model file generated in Step 2
 * `log_path: Path` Where to store logging files (saved weights, tensorboard files, hyper-parameters)
 * `vocab_size: int` The size of the sentencepiece vocabulary. 
 * `embedding_droprate: float` The rate at which embeddings are dropped (aka Embedding Dropout)

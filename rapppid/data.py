@@ -10,14 +10,12 @@ import sentencepiece as sp
 import pytorch_lightning as pl
 
 class RapppidDataset(Dataset):
-    def __init__(self, rows, seqs, trunc_len=1000, vocab_size=2000):
+    def __init__(self, rows, seqs, model_file, trunc_len=1000, vocab_size=2000):
         super().__init__()
         	
         self.rows = rows
         self.seqs = seqs
         self.trunc_len = trunc_len
-
-        model_file = f'./sentencepiece_models/smp{vocab_size}.model'
 
         self.spp = sp.SentencePieceProcessor(model_file=model_file)
 
@@ -68,7 +66,7 @@ class RapppidDataset(Dataset):
 
 class RapppidDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size: int, train_path: str, val_path: str, test_path: str, seqs_path: str, trunc_len: int, workers: int, vocab_size: int, seed: int):
+    def __init__(self, batch_size: int, train_path: str, val_path: str, test_path: str, seqs_path: str, trunc_len: int, workers: int, vocab_size: int, model_file: str, seed: int):
 
         super().__init__()
         
@@ -86,6 +84,8 @@ class RapppidDataModule(pl.LightningDataModule):
         
         self.trunc_len = trunc_len
         self.workers = workers
+
+        self.model_file = model_file
         
         self.train = []
         self.test = []
@@ -105,9 +105,9 @@ class RapppidDataModule(pl.LightningDataModule):
         with gzip.open(self.train_path) as f:
             self.train_pairs = pickle.load(f)  
 
-        self.dataset_train = RapppidDataset(self.train_pairs, self.seqs, self.trunc_len, self.vocab_size)
-        self.dataset_val = RapppidDataset(self.val_pairs, self.seqs, self.trunc_len, self.vocab_size)
-        self.dataset_test = RapppidDataset(self.test_pairs, self.seqs, self.trunc_len, self.vocab_size)
+        self.dataset_train = RapppidDataset(self.train_pairs, self.seqs, self.model_file, self.trunc_len, self.vocab_size)
+        self.dataset_val = RapppidDataset(self.val_pairs, self.seqs, self.model_file, self.trunc_len, self.vocab_size)
+        self.dataset_test = RapppidDataset(self.test_pairs, self.seqs, self.model_file, self.trunc_len, self.vocab_size)
 
     def train_dataloader(self):
         return DataLoader(self.dataset_train, batch_size=self.batch_size, 
