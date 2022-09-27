@@ -1,4 +1,4 @@
-from typing import List
+from pathlib import Path
 import gzip
 import pickle
 
@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import sentencepiece as sp
 import pytorch_lightning as pl
+
 
 class RapppidDataset(Dataset):
     def __init__(self, rows, seqs, model_file, trunc_len=1000, vocab_size=2000):
@@ -64,9 +65,11 @@ class RapppidDataset(Dataset):
     def __len__(self):
         return len(self.rows)
 
+
 class RapppidDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size: int, train_path: str, val_path: str, test_path: str, seqs_path: str, trunc_len: int, workers: int, vocab_size: int, model_file: str, seed: int):
+    def __init__(self, batch_size: int, train_path: Path, val_path: Path, test_path: Path, seqs_path: Path,
+                 trunc_len: int, workers: int, vocab_size: int, model_file: str, seed: int):
 
         super().__init__()
         

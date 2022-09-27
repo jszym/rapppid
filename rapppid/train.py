@@ -15,14 +15,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-#import torchsort
-
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import seed as pl_seed
 
-#import torch_optimizer as optim
 from ranger21 import Ranger21
 from dictlogger import DictLogger
 
@@ -34,6 +31,7 @@ from passlib import pwd
 
 from tqdm import tqdm
 import fire
+
 
 class MeanClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
@@ -56,6 +54,7 @@ class MeanClassHead(nn.Module):
         z = self.fc(z)
 
         return z
+
 
 class MultClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
@@ -91,6 +90,7 @@ class MultClassHead(nn.Module):
 
         return z
 
+
 class ConcatClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
         super(ConcatClassHead, self).__init__()
@@ -113,52 +113,6 @@ class ConcatClassHead(nn.Module):
 
         return z
 
-class SpearmanClassHead(nn.Module):
-    def __init__(self, num_layers, pos):
-        super(SpearmanClassHead, self).__init__()
-
-        self.pos = pos
-
-        if num_layers == 0:
-            self.fc = lambda x: x
-
-        elif num_layers == 1:
-            self.fc = nn.Linear(1, 1)
-
-        elif num_layers == 2:
-            self.fc = nn.Sequential(
-                        nn.Linear(1, 1),
-                        Mish(),
-                        nn.Linear(1, 1)
-                    )
-        else:
-            raise NotImplementedError
-
-    @staticmethod
-    def spearmanr(pred, target, **kw):
-        pred = torchsort.soft_rank(pred.float(), **kw)
-        target = torchsort.soft_rank(target.float(), **kw)
-        
-        pred = (pred.T - pred.mean(dim=1)).T
-        pred = (pred.T / pred.norm(dim=1)).T
-        
-        target = (target.T - target.mean(dim=1)).T
-        target = (target.T / target.norm(dim=1)).T
-        
-        return torch.sum(pred * target, dim=1).unsqueeze(1)
-
-    def forward(self, z_a, z_b):
-
-        z = self.spearmanr(z_a, z_b)
-
-        if self.pos:
-            z = z.pow(2).sqrt()
-        else:
-            z = z.add_(1).div_(2)
-
-        z = self.fc(z)
-
-        return z
 
 class ManhattanClassHead(nn.Module):
     def __init__(self):
@@ -232,10 +186,6 @@ class LSTMAWD(pl.LightningModule):
                                                 classhead_num_layers,
                                                 classhead_dropout_rate,
                                                 variational_dropout)
-        elif class_head_name == "spearman_pos":
-            self.class_head = SpearmanClassHead(classhead_num_layers, True)
-        elif class_head_name == "spearman":
-            self.class_head = SpearmanClassHead(classhead_num_layers, False)
         elif self.class_head_name == 'manhattan':
             self.class_head = ManhattanClassHead()
         else:
@@ -560,14 +510,12 @@ def _getThreads():
         else:
             return (int)(os.popen('grep -c cores /proc/cpuinfo').read())
 
-def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seqs_path: Path,
-            trunc_len: int, embedding_size: int, num_epochs: int, 
-                    lstm_dropout_rate: float, classhead_dropout_rate: float, rnn_num_layers: int, 
-                    classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str, 
-                    class_head_name: str, variational_dropout: bool, lr_scaling: bool, model_file: str,
-                    log_path: Path = 'logs', vocab_size: int = 250, embedding_droprate: float = 0.2,
-                    transfer_path: Optional[str] = None, optimizer_type: str = 'ranger21',
-                    swa: bool = True, seed: int = 5353456):
+def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seqs_path: Path, trunc_len: int,
+            embedding_size: int, num_epochs: int, lstm_dropout_rate: float, classhead_dropout_rate: float,
+            rnn_num_layers: int, classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str,
+            class_head_name: str, variational_dropout: bool, lr_scaling: bool, model_file: Path, log_path: Path = 'logs',
+            vocab_size: int = 250, embedding_droprate: float = 0.2, transfer_path: Optional[str] = None,
+            optimizer_type: str = 'ranger21', swa: bool = True, seed: int = 5353456):
 
     pl_seed.seed_everything(seed, workers=True)
 
