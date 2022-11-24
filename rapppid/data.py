@@ -99,16 +99,21 @@ class RapppidDataset2(Dataset):
         self.c_type = c_type
         self.split = split
 
+        if self.split in ['test', 'val']:
+            self.sampling = False
+        else:
+            self.sampling = True
+
         self.spp = sp.SentencePieceProcessor(model_file=model_file)
         
 
     @staticmethod
-    def static_encode(trunc_len: int, spp, seq: str, sp: bool = True, pad: bool = True):
-        
+    def static_encode(trunc_len: int, spp, seq: str, sp: bool = True, pad: bool = True, sampling=True):
+
         seq = seq[:trunc_len]
 
         if sp:
-            toks = np.array(spp.encode(seq, enable_sampling=True, alpha=0.1, nbest_size=-1))
+            toks = np.array(spp.encode(seq, enable_sampling=sampling, alpha=0.1, nbest_size=-1))
         else:
             toks = encode_seq(seq)
 
@@ -120,7 +125,7 @@ class RapppidDataset2(Dataset):
 
     def encode(self, seq: str, sp: bool = True, pad: bool = True):
 
-        return self.static_encode(self.trunc_len, self.spp, seq, sp, pad)
+        return self.static_encode(self.trunc_len, self.spp, seq, sp, pad, self.sampling)
 
     def get_sequence(self, name: str):
         dataset = tb.open_file(self.dataset_path)
