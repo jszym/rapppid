@@ -13,8 +13,20 @@ You'll first need a dataset in a format that RAPPPID understands. There are two 
 ### 2. Generate SentencePiece Tokens
 
 First begin by generating a SentencePiece vocabulary using `rapppid/train_seg.py`.
-Set the `TRAIN_PATH`, `SEQ_PATH`, and `VOCAB_SIZE` constants to the desired 
-values.
+
+You can run this script from the CLI. 
+
+```
+Usage: train_seg.py [OPTIONS] SEQ_PATH TRAIN_PATH
+```
+
+Some more details:
+
+* `SEQ_PATH`: is the location of the sequences Pickle file (see [data.md](data.md))
+* `TRAIN_PATH`: is the location of the training pairs Pickle file (see [data.md](data.md))
+* `seed: int`: Random seed for determinism.
+* `vocab_size: int`: The size of the vocabulary to be generated.
+    * **recommended value**: a value of `250` was used in the paper.
 
 This script makes sure that the SentencePiece model is only trained on sequence present in the training dataset to ensure no data leakage.
 
