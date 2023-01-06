@@ -533,7 +533,7 @@ def main(batch_size: int, trunc_len: int,
     #threads = 4
     print(f'Using {threads} workers')
 
-    if (val_path is None or test_path is None or seq_path is None) and dataset_path is None:
+    if (val_path is None or test_path is None or seqs_path is None) and dataset_path is None:
         raise ValueError('Either provide a "dataset_path" or all three of "val_path", "test_path", and "train_path"')
 
     if dataset_path is not None:
