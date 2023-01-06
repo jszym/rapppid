@@ -5,7 +5,7 @@
 ---
 
 RAPPPID is a deep learning model for predicting protein interactions. You can 
-read more about it in [our preprint](https://doi.org/10.1101/2021.08.13.456309).
+read more about it in the OUP Bionformatics [paper](https://doi.org/10.1093/bioinformatics/btac429).
 
 ## How to Use RAPPPID
 
