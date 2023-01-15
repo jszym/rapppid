@@ -128,14 +128,16 @@ class RapppidDataset2(Dataset):
         return self.static_encode(self.trunc_len, self.spp, seq, sp, pad, self.sampling)
 
     def get_sequence(self, name: str):
-        dataset = tb.open_file(self.dataset_path)
-        return dataset.root.sequences.read_where(f'name=="{name}"')[0][1].decode('utf8')
+        with tb.open_file(self.dataset_path) as dataset:
+            seq = dataset.root.sequences.read_where(f'name=="{name}"')[0][1].decode('utf8')
+
+        return seq
 
     def __getitem__(self, idx):
 
-        dataset = tb.open_file(self.dataset_path)
+        with tb.open_file(self.dataset_path) as dataset:
 
-        p1, p2, label = dataset.root['interactions'][f'c{self.c_type}'][f'c{self.c_type}_{self.split}'][idx]
+            p1, p2, label = dataset.root['interactions'][f'c{self.c_type}'][f'c{self.c_type}_{self.split}'][idx]
 
         p1 = p1.decode('utf8')
         p2 = p2.decode('utf8')
@@ -151,8 +153,8 @@ class RapppidDataset2(Dataset):
         return (p1_seq, p2_seq, label)
 
     def __len__(self):
-        dataset = tb.open_file(self.dataset_path)
-        l = len(dataset.root['interactions'][f'c{self.c_type}'][f'c{self.c_type}_{self.split}'])
+        with tb.open_file(self.dataset_path) as dataset:
+            l = len(dataset.root['interactions'][f'c{self.c_type}'][f'c{self.c_type}_{self.split}'])
         return l
 
 
