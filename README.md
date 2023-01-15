@@ -24,6 +24,8 @@ The conda environment file (`environment.yml`) is available in the root of this
 repository. This lists all the python libraries and the versions used for 
 running RAPPPID.
 
+Alternatively, there's a `requirements.txt` file if you prefer to use PIP.
+
 You'll need an NVIDIA GPU which is CUDA compatible. RAPPPID was tested on RTX 2080, V100, and A100 GPUs.
 
 
