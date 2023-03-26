@@ -91,4 +91,3 @@ dependencies:
     - werkzeug==2.2.2
     - yarl==1.8.2
     - zipp==3.11.0
-prefix: /home/jszym/mambaforge-pypy3/envs/rapppid
