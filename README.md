@@ -5,7 +5,7 @@
 ---
 
 RAPPPID is a deep learning model for predicting protein interactions. You can 
-read more about it in [our preprint](https://doi.org/10.1101/2021.08.13.456309).
+read more about it in the OUP Bionformatics [paper](https://doi.org/10.1093/bioinformatics/btac429).
 
 ## How to Use RAPPPID
 
@@ -23,6 +23,8 @@ See [docs/infer.md](docs/infer.md) for advice on how to use RAPPPID for infering
 The conda environment file (`environment.yml`) is available in the root of this
 repository. This lists all the python libraries and the versions used for 
 running RAPPPID.
+
+Alternatively, there's a `requirements.txt` file if you prefer to use PIP.
 
 You'll need an NVIDIA GPU which is CUDA compatible. RAPPPID was tested on RTX 2080, V100, and A100 GPUs.
 

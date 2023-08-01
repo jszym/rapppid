@@ -3,6 +3,7 @@ import time
 import json
 import os
 import sys
+from typing import Optional
 
 import matplotlib.pyplot as plt
 
@@ -14,25 +15,23 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-#import torchsort
-
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import seed as pl_seed
 
-#import torch_optimizer as optim
 from ranger21 import Ranger21
 from dictlogger import DictLogger
 
 from weightdrop import WeightDrop
 from nl import Mish
-from data import RapppidDataModule
+from data import RapppidDataModule, RapppidDataModule2
 
 from passlib import pwd
 
 from tqdm import tqdm
 import fire
+
 
 class MeanClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
@@ -55,6 +54,7 @@ class MeanClassHead(nn.Module):
         z = self.fc(z)
 
         return z
+
 
 class MultClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
@@ -90,6 +90,7 @@ class MultClassHead(nn.Module):
 
         return z
 
+
 class ConcatClassHead(nn.Module):
     def __init__(self, embedding_size, num_layers, weight_drop, variational):
         super(ConcatClassHead, self).__init__()
@@ -112,52 +113,6 @@ class ConcatClassHead(nn.Module):
 
         return z
 
-class SpearmanClassHead(nn.Module):
-    def __init__(self, num_layers, pos):
-        super(SpearmanClassHead, self).__init__()
-
-        self.pos = pos
-
-        if num_layers == 0:
-            self.fc = lambda x: x
-
-        elif num_layers == 1:
-            self.fc = nn.Linear(1, 1)
-
-        elif num_layers == 2:
-            self.fc = nn.Sequential(
-                        nn.Linear(1, 1),
-                        Mish(),
-                        nn.Linear(1, 1)
-                    )
-        else:
-            raise NotImplementedError
-
-    @staticmethod
-    def spearmanr(pred, target, **kw):
-        pred = torchsort.soft_rank(pred.float(), **kw)
-        target = torchsort.soft_rank(target.float(), **kw)
-        
-        pred = (pred.T - pred.mean(dim=1)).T
-        pred = (pred.T / pred.norm(dim=1)).T
-        
-        target = (target.T - target.mean(dim=1)).T
-        target = (target.T / target.norm(dim=1)).T
-        
-        return torch.sum(pred * target, dim=1).unsqueeze(1)
-
-    def forward(self, z_a, z_b):
-
-        z = self.spearmanr(z_a, z_b)
-
-        if self.pos:
-            z = z.pow(2).sqrt()
-        else:
-            z = z.add_(1).div_(2)
-
-        z = self.fc(z)
-
-        return z
 
 class ManhattanClassHead(nn.Module):
     def __init__(self):
@@ -172,12 +127,13 @@ class ManhattanClassHead(nn.Module):
 
         return y_logit
 
+
 class LSTMAWD(pl.LightningModule):
     def __init__(self, num_codes, embedding_size, steps_per_epoch, num_epochs, 
                     lstm_dropout_rate, classhead_dropout_rate, rnn_num_layers, 
                     classhead_num_layers, lr,  weight_decay, bi_reduce, 
                     class_head_name, variational_dropout, lr_scaling, trunc_len, 
-                    embedding_droprate, optimizer_type):
+                    embedding_droprate, frozen_epochs, optimizer_type):
 
         super(LSTMAWD, self).__init__()
 
@@ -203,6 +159,7 @@ class LSTMAWD(pl.LightningModule):
         self.lr_base = lr
         self.fc = nn.Linear(embedding_size, embedding_size)
         self.nl = Mish()
+        self.frozen_epochs = frozen_epochs
         self.optimizer_type = optimizer_type
 
         if self.bi_reduce == 'concat':
@@ -231,10 +188,6 @@ class LSTMAWD(pl.LightningModule):
                                                 classhead_num_layers,
                                                 classhead_dropout_rate,
                                                 variational_dropout)
-        elif class_head_name == "spearman_pos":
-            self.class_head = SpearmanClassHead(classhead_num_layers, True)
-        elif class_head_name == "spearman":
-            self.class_head = SpearmanClassHead(classhead_num_layers, False)
         elif self.class_head_name == 'manhattan':
             self.class_head = ManhattanClassHead()
         else:
@@ -299,6 +252,11 @@ class LSTMAWD(pl.LightningModule):
             # Reset gradients
             opt = self.optimizers()
             opt.zero_grad()
+
+        if self.current_epoch < self.frozen_epochs:
+            self.rnn_dp.requires_grad_(False)
+        else:
+            self.rnn_dp.requires_grad_(True)
 
         a, b, y = batch
 
@@ -559,13 +517,15 @@ def _getThreads():
         else:
             return (int)(os.popen('grep -c cores /proc/cpuinfo').read())
 
-def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seqs_path: Path,
-            trunc_len: int, embedding_size: int, num_epochs: int, 
-                    lstm_dropout_rate: float, classhead_dropout_rate: float, rnn_num_layers: int, 
-                    classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str, 
-                    class_head_name: str, variational_dropout: bool, lr_scaling: bool,
-                    log_path: Path = './logs', vocab_size: int = 250, embedding_droprate: float = 0.2,
-                    optimizer_type: str = 'ranger21', swa: bool = True, seed: int = 5353456):
+def main(batch_size: int, trunc_len: int,
+            embedding_size: int, num_epochs: int, lstm_dropout_rate: float, classhead_dropout_rate: float,
+            rnn_num_layers: int, classhead_num_layers: int, lr: float,  weight_decay: float, bi_reduce: str,
+            class_head_name: str, variational_dropout: bool, lr_scaling: bool, model_file: Path, log_path: Path = 'logs',
+            vocab_size: int = 250, embedding_droprate: float = 0.2, transfer_path: Optional[str] = None,
+            frozen_epochs: int = 0, optimizer_type: str = 'ranger21', swa: bool = True, seed: int = 5353456,
+            c_type: Optional[int] = None, train_path: Optional[Path] = None, 
+            val_path: Optional[Path] = None, test_path: Optional[Path] = None, seqs_path: Optional[Path] = None, 
+            dataset_path: Optional[Path] = None):
 
     pl_seed.seed_everything(seed, workers=True)
 
@@ -573,17 +533,32 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     #threads = 4
     print(f'Using {threads} workers')
 
-    data_module = RapppidDataModule(batch_size, train_path, val_path, test_path,
-                                    seqs_path, trunc_len, threads, vocab_size, seed)
+    if (val_path is None or test_path is None or seqs_path is None) and dataset_path is None:
+        raise ValueError('Either provide a "dataset_path" or all three of "val_path", "test_path", and "train_path"')
+
+    if dataset_path is not None:
+        if c_type is None:
+            print('If "dataset_path" is specified, so must "c_type"')
+        print('Using RAPPPID V2 Dataset format.')
+
+        data_module = RapppidDataModule2(batch_size, dataset_path, c_type, trunc_len, threads, vocab_size,
+                 model_file, seed)
+
+    else:
+        data_module = RapppidDataModule(batch_size, train_path, val_path, test_path,
+                                        seqs_path, trunc_len, threads, vocab_size, model_file, seed)
 
     data_module.setup()
     steps_per_epoch = len(data_module.dataset_train)//batch_size
 
-    model = LSTMAWD(vocab_size, embedding_size, steps_per_epoch, num_epochs, 
-                    lstm_dropout_rate, classhead_dropout_rate, rnn_num_layers, 
-                    classhead_num_layers, lr,  weight_decay, bi_reduce, 
-                    class_head_name, variational_dropout, lr_scaling, trunc_len, 
-                    embedding_droprate, optimizer_type)
+    if transfer_path:
+        model = LSTMAWD.load_from_checkpoint(transfer_path).eval()
+    else:
+        model = LSTMAWD(vocab_size, embedding_size, steps_per_epoch, num_epochs,
+                        lstm_dropout_rate, classhead_dropout_rate, rnn_num_layers,
+                        classhead_num_layers, lr, weight_decay, bi_reduce,
+                        class_head_name, variational_dropout, lr_scaling, trunc_len,
+                        embedding_droprate, frozen_epochs, optimizer_type)
 
     model_name = pwd.genphrase(length=2).replace(" ", "-")
     model_name = f"{time.time()}_{model_name}"
@@ -612,8 +587,12 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
         'vocab_size': vocab_size,
         'embedding_droprate': embedding_droprate,
         'optimizer_type': optimizer_type,
+        'transfer_path': transfer_path,
+        'frozen_epochs': frozen_epochs,
         'swa': swa,
-        'seed': seed
+        'seed': seed,
+        'dataset_path': dataset_path,
+        'c_type': c_type
     }
 
     print('ARGS')
@@ -621,7 +600,7 @@ def main(batch_size: int, train_path: Path, val_path: Path, test_path: Path, seq
     print(json.dumps(args, indent=3))
     print('='*10)
 
-    command = f'python cli.py {batch_size} {train_path} {val_path} {test_path} {seqs_path} {trunc_len} {embedding_size} {num_epochs} {lstm_dropout_rate} {classhead_dropout_rate} {rnn_num_layers} {classhead_num_layers} {lr} {weight_decay} {bi_reduce} {class_head_name} {variational_dropout} {lr_scaling} {log_path} {vocab_size} {embedding_droprate}'
+    command = f'python cli.py --batch_size {batch_size} --train_path {train_path} --val_path {val_path} --test_path {test_path} --seqs_path {seqs_path} --trunc_len {trunc_len} -embedding_size {embedding_size} --num_epochs {num_epochs} --lstm_dropout_rate {lstm_dropout_rate} --classhead_dropout_rate {classhead_dropout_rate} --rnn_num_layers {rnn_num_layers} --classhead_num_layers {classhead_num_layers} --lr {lr} --weight_decay {weight_decay} --bi_reduce {bi_reduce} --class_head_name {class_head_name} --variational_dropout {variational_dropout} --lr_scaling {lr_scaling} --log_path {log_path} --vocab_size {vocab_size} --embedding_droprate {embedding_droprate} --optimizer_type {optimizer_type} --transfer_path {transfer_path} --frozen_epochs {frozen_epochs} --swa {swa} --seed {seed}'
 
     with open(f'{log_path}/args/{model_name}.json', 'w') as f:
         json.dump({
