@@ -13,7 +13,7 @@ read more about it in [our preprint](https://doi.org/10.1101/2021.08.13.456309).
 It's possible to train a RAPPPID model using the `train.py` utility. For precise instructions, see [docs/train.md](docs/train.md).
 
 ### Data
-See [docs/data.md](docs/data.md) for information about downloading data from the manuscript, or preparing your own datasets.
+See [docs/data.md](docs/data.md) for information about downloading data from the manuscript, pre-trained weights, or preparing your own datasets.
 
 ### Infering
 See [docs/infer.md](docs/infer.md) for advice on how to use RAPPPID for infering protein interaction probabilities.

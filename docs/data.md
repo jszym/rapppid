@@ -78,3 +78,7 @@ with gzip.open('seqs.pkl.gz', mode='wb') as f:
 ```
 
 With the above examples, you should be able to create your own datasets quite easily for RAPPPID.
+
+## Pre-Trained Weights
+
+See the `/data/pretrained_weights` folder for pretrained weights for RAPPPID.
